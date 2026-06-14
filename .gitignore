@@ -1,4 +1,5 @@
 .claude/settings.local.json
 
-# Internal planning doc — kept local, never published
+# Internal planning/design docs — kept local, never published
 docs/PUBLISH-PLAN.md
+docs/superpowers/
