@@ -17,7 +17,7 @@ It documents two methods:
 
 Both use ECDSA P-256 keys and produce the combined `tls.pem`. The scripts automate everything
 on the Pi-hole server (cert generation through optional deploy + `pihole-FTL` restart); the
-only manual step is importing the cert/CA into the client browser (`docs/SCRIPTS.md`).
+only manual step is importing the cert/CA into the client browser (see the README).
 
 ## The Source-of-Truth Problem (read before editing the procedure)
 
