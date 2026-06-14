@@ -38,6 +38,8 @@ This guide assumes:
 - All shell commands are executed from the home directory (e.g., `/home/your_user` or `~/`).
 - Your client browser is Chrome in Windows
 
+> **Scope:** This guide targets a **host-based** Pi-hole install — the commands use the host's `/etc/pihole` directory and `sudo service pihole-FTL restart`. If Pi-hole runs in **Docker** (`docker-pi-hole`), generate the certificate the same way, then mount `tls.pem` to `/etc/pihole/tls.pem` in the container (or set the `FTLCONF_webserver_tls_cert` environment variable) and restart with `docker restart pihole`.
+
 ---
 ## Method 1: Use an Internal Certificate Authority CA (Recommended)
 - Pros: All future certificates are trusted once you install the CA cert.
@@ -152,6 +154,8 @@ sudo rm /etc/pihole/tls*
 sudo cp tls.pem /etc/pihole
 ```
 
+> **Note:** This overwrites Pi-hole's default certificate at `/etc/pihole/tls.pem`, which works because `webserver.tls.cert` in `/etc/pihole/pihole.toml` points there by default. Alternatively, copy `tls.pem` to any location readable by the `pihole` user and set `webserver.tls.cert` to that path before restarting.
+
 ### Step 9. [On Pi-hole Server] Restart Pi-hole
 ```
 sudo service pihole-FTL restart
@@ -258,6 +262,8 @@ sudo rm /etc/pihole/tls*
 sudo cp tls.pem /etc/pihole
 ```
 
+> **Note:** This overwrites Pi-hole's default certificate at `/etc/pihole/tls.pem`, which works because `webserver.tls.cert` in `/etc/pihole/pihole.toml` points there by default. Alternatively, copy `tls.pem` to any location readable by the `pihole` user and set `webserver.tls.cert` to that path before restarting.
+
 ### Step 7. [On Pi-hole Server] Restart Pi-hole
 ```
 sudo service pihole-FTL restart
@@ -276,6 +282,6 @@ Import `tls.crt` into your browser’s **Trusted Root Certificate Store**
 
 ### Notes
 
-Import `homelabCA.crt` to Trusted Root Certificate Store.
+Import the appropriate certificate into your browser's **Trusted Root Certificate Store** — `homelabCA.crt` for Method 1, or `tls.crt` for Method 2.
 
-![Import `homelabCA.crt` to Trusted Root Certificate Store](./images/import.jpg "Import")
+![Importing a certificate into the Windows Trusted Root Certificate Store](./images/import.jpg "Import")
