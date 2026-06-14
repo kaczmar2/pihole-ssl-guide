@@ -77,7 +77,7 @@ The **CA key** (homelabCA.key) and **CA certificate** (homelabCA.crt) is now rea
 touch cert.cnf && nano cert.cnf
 ```
 
-Use the attached [cert.cnf](https://gist.github.com/kaczmar2/e1b5eb635c1a1e792faf36508c5698ee#file-cert-cnf) file as a template:
+Use the [`config-templates/cert.cnf`](config-templates/cert.cnf) file in this repo as a template:
 ```ini
 # Country Name (C)
 #Organization Name (O)
@@ -195,7 +195,7 @@ mkdir -p ~/crt && cd ~/crt
 touch cert.cnf && nano cert.cnf
 ```
 
-Use the attached [cert.cnf](https://gist.github.com/kaczmar2/e1b5eb635c1a1e792faf36508c5698ee#file-cert-cnf) file as a template:
+Use the [`config-templates/cert.cnf`](config-templates/cert.cnf) file in this repo as a template:
 ```ini
 # Country Name (C)
 #Organization Name (O)
@@ -245,7 +245,7 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 
 
 ### Step 4: Create a Combined `tls.pem` File
 ```
-cat tls.key tls.crt | tee tls.pem
+cat tls.crt tls.key | tee tls.pem
 ```
 
 ### Step 5: [On Pi-hole Server] Remove existing pi-hole self-signed cert files:

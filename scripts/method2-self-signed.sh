@@ -188,7 +188,7 @@ main() {
 
     # Step 4: Create combined tls.pem
     info "Step 4: Creating combined tls.pem"
-    cat tls.key tls.crt > tls.pem
+    cat tls.crt tls.key > tls.pem
     ok "Combined PEM created: tls.pem"
 
     # Verify the certificate
