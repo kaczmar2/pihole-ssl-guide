@@ -56,7 +56,7 @@ prompt() {
     local var_name="$1" prompt_text="$2" default="$3"
     local input
     read -rp "$(printf "${CYAN}?${NC} %s [%s]: " "$prompt_text" "$default")" input
-    eval "$var_name=\"${input:-$default}\""
+    printf -v "$var_name" '%s' "${input:-$default}"
 }
 
 # ── Collect user input ────────────────────────────────────────────────────────
@@ -128,11 +128,13 @@ EOF
             echo "DNS.${i} = ${dns}"
             ((i++))
         done
-        i=1
-        for ip in "${IP_ENTRIES[@]}"; do
-            echo "IP.${i} = ${ip}"
-            ((i++))
-        done
+        if ((${#IP_ENTRIES[@]})); then
+            i=1
+            for ip in "${IP_ENTRIES[@]}"; do
+                echo "IP.${i} = ${ip}"
+                ((i++))
+            done
+        fi
     } > "$cnf_file"
 }
 
@@ -147,7 +149,7 @@ print_summary() {
     echo "  IP  SANs          : ${IP_ENTRIES[*]:-none}"
     echo ""
     local confirm
-    read -rp "$(printf "${YELLOW}Proceed? [Y/n]: ${NC}")" confirm
+    read -rp "$(printf '%bProceed? [Y/n]: %b' "$YELLOW" "$NC")" confirm
     if [[ "$confirm" =~ ^[Nn] ]]; then
         info "Aborted."
         exit 0
@@ -200,7 +202,7 @@ main() {
     # Steps 5-7: Deploy to Pi-hole (optional)
     echo ""
     local deploy
-    read -rp "$(printf "${YELLOW}Deploy tls.pem to Pi-hole (${PIHOLE_TLS_DIR})? [y/N]: ${NC}")" deploy
+    read -rp "$(printf '%bDeploy tls.pem to Pi-hole (%s)? [y/N]: %b' "$YELLOW" "$PIHOLE_TLS_DIR" "$NC")" deploy
     if [[ "$deploy" =~ ^[Yy] ]]; then
         info "Step 5: Removing existing Pi-hole TLS files"
         sudo rm -f "${PIHOLE_TLS_DIR}"/tls*

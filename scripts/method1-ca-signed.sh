@@ -62,7 +62,7 @@ prompt() {
     local var_name="$1" prompt_text="$2" default="$3"
     local input
     read -rp "$(printf "${CYAN}?${NC} %s [%s]: " "$prompt_text" "$default")" input
-    eval "$var_name=\"${input:-$default}\""
+    printf -v "$var_name" '%s' "${input:-$default}"
 }
 
 # ── Collect user input ────────────────────────────────────────────────────────
@@ -141,11 +141,13 @@ EOF
             echo "DNS.${i} = ${dns}"
             ((i++))
         done
-        i=1
-        for ip in "${IP_ENTRIES[@]}"; do
-            echo "IP.${i} = ${ip}"
-            ((i++))
-        done
+        if ((${#IP_ENTRIES[@]})); then
+            i=1
+            for ip in "${IP_ENTRIES[@]}"; do
+                echo "IP.${i} = ${ip}"
+                ((i++))
+            done
+        fi
     } > "$cnf_file"
 }
 
@@ -162,7 +164,7 @@ print_summary() {
     echo "  IP  SANs          : ${IP_ENTRIES[*]:-none}"
     echo ""
     local confirm
-    read -rp "$(printf "${YELLOW}Proceed? [Y/n]: ${NC}")" confirm
+    read -rp "$(printf '%bProceed? [Y/n]: %b' "$YELLOW" "$NC")" confirm
     if [[ "$confirm" =~ ^[Nn] ]]; then
         info "Aborted."
         exit 0
@@ -185,16 +187,37 @@ main() {
     cd "$WORK_DIR"
     ok "Directory ready: ${WORK_DIR}"
 
-    # Step 2: Create CA key and certificate
-    info "Step 2: Creating Certificate Authority (CA)"
-    openssl req -x509 \
-        -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
-        -nodes \
-        -days "$CA_DAYS" \
-        -keyout homelabCA.key \
-        -out homelabCA.crt \
-        -subj "/C=${CA_COUNTRY}/O=${CA_ORG}/CN=${CA_CN}"
-    ok "CA created: homelabCA.key, homelabCA.crt"
+    # Step 2: Create or reuse the Certificate Authority (CA)
+    local create_ca=1
+    if [[ -f homelabCA.key && -f homelabCA.crt ]]; then
+        warn "Existing CA found in ${WORK_DIR} (homelabCA.key, homelabCA.crt)."
+        local reuse_ca
+        read -rp "$(printf '%bReuse this CA to sign the new certificate? [Y/n]: %b' "$YELLOW" "$NC")" reuse_ca
+        if [[ ! "$reuse_ca" =~ ^[Nn] ]]; then
+            create_ca=0
+            ok "Reusing existing CA: homelabCA.key, homelabCA.crt"
+        else
+            warn "Overwriting the existing CA. Certificates previously signed by it will"
+            warn "stop being trusted until the new CA is re-imported into every client."
+            local confirm_overwrite
+            read -rp "$(printf '%bType OVERWRITE to confirm, anything else aborts: %b' "$YELLOW" "$NC")" confirm_overwrite
+            [[ "$confirm_overwrite" == "OVERWRITE" ]] || { info "Aborted."; exit 0; }
+        fi
+    fi
+
+    if ((create_ca)); then
+        info "Step 2: Creating Certificate Authority (CA)"
+        openssl req -x509 \
+            -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+            -nodes \
+            -days "$CA_DAYS" \
+            -keyout homelabCA.key \
+            -out homelabCA.crt \
+            -subj "/C=${CA_COUNTRY}/O=${CA_ORG}/CN=${CA_CN}"
+        ok "CA created: homelabCA.key, homelabCA.crt"
+    else
+        info "Step 2: Using existing Certificate Authority (CA)"
+    fi
 
     # Step 3: Generate cert.cnf
     info "Step 3: Generating cert.cnf"
@@ -239,7 +262,7 @@ main() {
     # Steps 7-9: Deploy to Pi-hole (optional)
     echo ""
     local deploy
-    read -rp "$(printf "${YELLOW}Deploy tls.pem to Pi-hole (${PIHOLE_TLS_DIR})? [y/N]: ${NC}")" deploy
+    read -rp "$(printf '%bDeploy tls.pem to Pi-hole (%s)? [y/N]: %b' "$YELLOW" "$PIHOLE_TLS_DIR" "$NC")" deploy
     if [[ "$deploy" =~ ^[Yy] ]]; then
         info "Step 7: Removing existing Pi-hole TLS files"
         sudo rm -f "${PIHOLE_TLS_DIR}"/tls*
