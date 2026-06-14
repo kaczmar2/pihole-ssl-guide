@@ -12,7 +12,7 @@ certificate, Pi-hole needs a single **PEM file containing both the certificate a
 key** at `/etc/pihole/tls.pem`. The scripts in this repo generate that file with the hostnames
 and IPs you specify, and can deploy it to Pi-hole for you.
 
-> **Scope:** This guide targets a **host-based** Pi-hole install — the commands use the host's
+> **Scope:** This guide targets a standard **bare-metal** Pi-hole install (installed directly on the host OS, not in a container) — the commands use the host's
 > `/etc/pihole` directory and `sudo service pihole-FTL restart`. If Pi-hole runs in **Docker**
 > (`docker-pi-hole`), generate the certificate the same way, then mount `tls.pem` to
 > `/etc/pihole/tls.pem` in the container (or set the `FTLCONF_webserver_tls_cert` environment
