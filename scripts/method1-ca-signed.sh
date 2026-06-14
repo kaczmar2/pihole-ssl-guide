@@ -65,6 +65,63 @@ prompt() {
     printf -v "$var_name" '%s' "${input:-$default}"
 }
 
+# ── Deploy helpers ────────────────────────────────────────────────────────────
+print_host_recipe() {
+    echo "  sudo rm -f ${PIHOLE_TLS_DIR}/tls*"
+    echo "  sudo cp ${WORK_DIR}/tls.pem ${PIHOLE_TLS_DIR}"
+    echo "  sudo service pihole-FTL restart"
+}
+
+print_docker_recipe() {
+    local container="${1:-pihole}"
+    echo "  docker cp ${WORK_DIR}/tls.pem ${container}:${PIHOLE_TLS_DIR}/tls.pem"
+    echo "  docker restart ${container}"
+}
+
+deploy_host() {
+    info "Removing existing Pi-hole TLS files in ${PIHOLE_TLS_DIR}"
+    sudo rm -f "${PIHOLE_TLS_DIR}"/tls*
+    info "Copying tls.pem to ${PIHOLE_TLS_DIR}"
+    sudo cp tls.pem "${PIHOLE_TLS_DIR}"
+    info "Restarting Pi-hole (pihole-FTL)"
+    sudo service pihole-FTL restart
+    ok "Deployed to ${PIHOLE_TLS_DIR} and restarted pihole-FTL."
+}
+
+deploy_docker() {
+    local container
+    prompt container "Pi-hole container name" "pihole"
+
+    if ! command -v docker &>/dev/null; then
+        err "docker is not installed or not in PATH; cannot deploy to a container."
+        warn "To deploy to your container manually, run:"
+        print_docker_recipe "$container"
+        return
+    fi
+    if ! docker inspect "$container" &>/dev/null; then
+        err "No Docker container named '${container}' found. Running containers:"
+        docker ps --format '  {{.Names}}' || true
+        warn "To deploy once the container is running, run:"
+        print_docker_recipe "$container"
+        return
+    fi
+
+    info "Copying tls.pem into container '${container}' (${PIHOLE_TLS_DIR}/tls.pem)"
+    if ! docker cp tls.pem "${container}:${PIHOLE_TLS_DIR}/tls.pem"; then
+        err "docker cp failed."
+        warn "To deploy manually, run:"
+        print_docker_recipe "$container"
+        return
+    fi
+    info "Restarting container '${container}'"
+    if ! docker restart "$container" >/dev/null; then
+        err "docker restart failed."
+        warn "Restart it manually with: docker restart ${container}"
+        return
+    fi
+    ok "Deployed to container '${container}' and restarted it."
+}
+
 # ── Collect user input ────────────────────────────────────────────────────────
 collect_input() {
     echo ""
@@ -259,27 +316,24 @@ main() {
     openssl x509 -in tls.crt -noout -subject -issuer -dates -ext subjectAltName 2>/dev/null || true
     echo "---"
 
-    # Steps 7-9: Deploy to Pi-hole (optional)
+    # Deploy the certificate (optional)
     echo ""
     local deploy
-    read -rp "$(printf '%bDeploy tls.pem to Pi-hole (%s)? [y/N]: %b' "$YELLOW" "$PIHOLE_TLS_DIR" "$NC")" deploy
+    read -rp "$(printf '%bDeploy the certificate now? [y/N]: %b' "$YELLOW" "$NC")" deploy
     if [[ "$deploy" =~ ^[Yy] ]]; then
-        info "Step 7: Removing existing Pi-hole TLS files"
-        sudo rm -f "${PIHOLE_TLS_DIR}"/tls*
-        ok "Old TLS files removed"
-
-        info "Step 8: Copying tls.pem to ${PIHOLE_TLS_DIR}"
-        sudo cp tls.pem "$PIHOLE_TLS_DIR"
-        ok "tls.pem deployed"
-
-        info "Step 9: Restarting Pi-hole"
-        sudo service pihole-FTL restart
-        ok "Pi-hole restarted"
+        local target
+        read -rp "$(printf '%bDeploy to [h]ost (bare-metal) or [d]ocker container? [h/d]: %b' "$YELLOW" "$NC")" target
+        if [[ "$target" =~ ^[Dd] ]]; then
+            deploy_docker
+        else
+            deploy_host
+        fi
     else
-        warn "Skipped deployment. To deploy manually, run:"
-        echo "  sudo rm -f ${PIHOLE_TLS_DIR}/tls*"
-        echo "  sudo cp ${WORK_DIR}/tls.pem ${PIHOLE_TLS_DIR}"
-        echo "  sudo service pihole-FTL restart"
+        warn "Skipped deployment. To deploy later, run one of:"
+        echo "  Bare-metal host:"
+        print_host_recipe
+        echo "  Docker container (default name 'pihole'):"
+        print_docker_recipe "pihole"
     fi
 
     # Final output

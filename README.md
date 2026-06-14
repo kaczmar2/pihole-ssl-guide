@@ -12,11 +12,10 @@ certificate, Pi-hole needs a single **PEM file containing both the certificate a
 key** at `/etc/pihole/tls.pem`. The scripts in this repo generate that file with the hostnames
 and IPs you specify, and can deploy it to Pi-hole for you.
 
-> **Scope:** This guide targets a standard **bare-metal** Pi-hole install (installed directly on the host OS, not in a container) — the commands use the host's
-> `/etc/pihole` directory and `sudo service pihole-FTL restart`. If Pi-hole runs in **Docker**
-> (`docker-pi-hole`), generate the certificate the same way, then mount `tls.pem` to
-> `/etc/pihole/tls.pem` in the container (or set the `FTLCONF_webserver_tls_cert` environment
-> variable) and restart with `docker restart pihole`.
+> **Scope:** This works for Pi-hole v6 whether it's installed **bare-metal** (directly on the
+> host OS) or running in **Docker** (`docker-pi-hole`). The certificate is generated the same
+> way for both, and the script can deploy to either — see
+> [Deploy the certificate](#deploy-the-certificate).
 
 ## Which method?
 
@@ -56,10 +55,9 @@ tar -xzf main.tar.gz --strip-components=1
 ```
 
 The script is interactive: it prompts for your organization details, hostnames (DNS SANs), and
-IP addresses, generates the certificate, and **optionally deploys** `tls.pem` to `/etc/pihole`
-and restarts `pihole-FTL` for you. Run it **on the Pi-hole host** if you want it to deploy
-automatically (it will use `sudo`); otherwise copy the resulting `tls.pem` to `/etc/pihole` on
-the Pi-hole machine yourself and run `sudo service pihole-FTL restart`.
+IP addresses, and generates the certificate. At the end it **optionally deploys** the
+certificate for you — to a **bare-metal** Pi-hole or a **Docker** container (see
+[Deploy the certificate](#deploy-the-certificate)) — or you can skip and deploy it yourself.
 
 ## What the scripts produce
 
@@ -85,6 +83,31 @@ Files are written to a working directory (`~/crt` by default).
 | `tls.key` | Private key |
 | `tls.crt` | Self-signed certificate — import into browsers |
 | `tls.pem` | Combined cert+key for Pi-hole |
+
+## Deploy the certificate
+
+Pi-hole loads its certificate from a single PEM file at `/etc/pihole/tls.pem`. The script
+offers to deploy at the end (choose **host** or **docker**), or do it yourself:
+
+### Bare-metal
+
+```bash
+sudo cp tls.pem /etc/pihole/tls.pem
+sudo service pihole-FTL restart
+```
+
+### Docker
+
+Copy the PEM into the container and restart it (default container name `pihole`):
+
+```bash
+docker cp tls.pem pihole:/etc/pihole/tls.pem
+docker restart pihole
+```
+
+If your `docker-compose` bind-mounts `/etc/pihole` to a host directory (e.g.
+`/srv/docker/pihole/etc-pihole`), you can instead drop `tls.pem` straight into that directory
+and restart the container.
 
 ## Import the certificate into your browser
 
