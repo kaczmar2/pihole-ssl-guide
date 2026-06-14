@@ -15,7 +15,7 @@
 #
 # What is NOT automated:
 #   Step 8 - Importing tls.crt into your browser (manual).
-#            See SCRIPTS.md for instructions.
+#            See the README for instructions.
 #
 set -euo pipefail
 
@@ -234,7 +234,7 @@ main() {
     echo ""
     warn "MANUAL STEP REQUIRED:"
     echo "  Import tls.crt into your browser's Trusted Root"
-    echo "  Certificate Store. See SCRIPTS.md for instructions."
+    echo "  Certificate Store. See the README for instructions."
     echo "============================================================"
 }
 

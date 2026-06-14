@@ -17,7 +17,7 @@
 #
 # What is NOT automated:
 #   Step 10 - Importing homelabCA.crt into your browser (manual).
-#             See SCRIPTS.md for instructions.
+#             See the README for instructions.
 #
 set -euo pipefail
 
@@ -297,7 +297,7 @@ main() {
     echo ""
     warn "MANUAL STEP REQUIRED:"
     echo "  Import homelabCA.crt into your browser's Trusted Root"
-    echo "  Certificate Store. See SCRIPTS.md for instructions."
+    echo "  Certificate Store. See the README for instructions."
     echo "============================================================"
 }
 
