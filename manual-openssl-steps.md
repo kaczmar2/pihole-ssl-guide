@@ -133,6 +133,9 @@ sudo cp tls.pem /etc/pihole
 sudo service pihole-FTL restart
 ```
 
+> Running Pi-hole in Docker? See [Deploy the certificate](README.md#deploy-the-certificate) in
+> the README — use `docker cp` instead of copying to `/etc/pihole`.
+
 ### Step 10: Import the CA into your browser
 
 Import `homelabCA.crt` into your client's Trusted Root Certificate Store — see
@@ -238,6 +241,9 @@ sudo cp tls.pem /etc/pihole
 ```
 sudo service pihole-FTL restart
 ```
+
+> Running Pi-hole in Docker? See [Deploy the certificate](README.md#deploy-the-certificate) in
+> the README — use `docker cp` instead of copying to `/etc/pihole`.
 
 ### Step 8: Import the certificate into your browser
 
