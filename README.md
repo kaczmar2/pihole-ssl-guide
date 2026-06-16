@@ -1,32 +1,34 @@
 # Pi-hole v6 SSL Certificates
 
-Create your own trusted SSL certificate for the
+Create your own browser-trusted SSL certificate for the
 [Pi-hole v6](https://pi-hole.net/blog/2025/02/18/introducing-pi-hole-v6/#page-content) web
-interface — automated with a single interactive script. Choose an internal Certificate
-Authority (recommended) or a standalone self-signed certificate.
+interface — automated with a single interactive script. This guide uses an **internal
+Certificate Authority (CA)**: you trust the CA in your browser once, and every certificate it
+signs is trusted automatically.
 
 ## Overview
 
 Pi-hole v6 replaced `lighttpd` with an embedded web server. To serve HTTPS with your own
 certificate, Pi-hole needs a single **PEM file containing both the certificate and its private
-key** at `/etc/pihole/tls.pem`. The scripts in this repo generate that file with the hostnames
-and IPs you specify, and can deploy it to Pi-hole for you.
+key** at `/etc/pihole/tls.pem`. The script generates that file with the hostnames and IPs you
+specify, and can deploy it to Pi-hole for you.
 
 > **Scope:** This works for Pi-hole v6 whether it's installed **bare-metal** (directly on the
 > host OS) or running in **Docker** (`docker-pi-hole`). The certificate is generated the same
 > way for both, and the script can deploy to either — see
 > [Deploy the certificate](#deploy-the-certificate).
 
-## Which method?
+## Why an internal CA?
 
-- **Method 1 — Internal CA (recommended).** Create a Certificate Authority once, import it into
-  your browser once, and every certificate you sign with it is trusted automatically —
-  including certificates for future servers. Best when you have more than one device or service
-  to secure.
-- **Method 2 — Self-signed.** Generate a single standalone certificate. Simpler, but you must
-  import each certificate into every browser individually. Fine for a single Pi-hole.
+With an internal CA you import **one** certificate (the CA) into your browser a single time;
+after that, every certificate the CA signs is trusted automatically — including certificates
+for other servers and services you add later.
 
-## Quick Start (automated)
+> Self-signed certificates also work ([Self-signed guide](self-signed.md)), but every
+> certificate must be trusted individually on each device. The internal CA method avoids that —
+> it's recommended even for a single Pi-hole, especially with this script automating it.
+
+## Quick Start
 
 ### 1. Install openssl
 
@@ -44,64 +46,43 @@ curl -L -o main.tar.gz https://github.com/kaczmar2/pihole-ssl-guide/archive/refs
 tar -xzf main.tar.gz --strip-components=1
 ```
 
-### 3. Run the script for your chosen method
+### 3. Run the script
 
 ```bash
-# Method 1 — Internal CA (recommended)
-./scripts/method1-ca-signed.sh
-
-# Method 2 — Self-signed
-./scripts/method2-self-signed.sh
+./scripts/ca-signed.sh
 ```
 
 > The scripts ship executable, so this should just work. If you get a `Permission denied`,
 > make them executable first: `chmod +x scripts/*.sh`.
 
-The script is interactive: it prompts for your organization details, hostnames (DNS SANs), and
-IP addresses, and generates the certificate. At the end it **optionally deploys** the
-certificate for you — to a **bare-metal** Pi-hole or a **Docker** container (see
-[Deploy the certificate](#deploy-the-certificate)) — or you can skip and deploy it yourself.
-
-## What the scripts produce
-
-Files are written to a working directory (`~/crt` by default).
-
-**Method 1 (CA-signed):**
-
-| File | Purpose |
-|------|---------|
-| `homelabCA.key` | CA private key — keep this secure |
-| `homelabCA.crt` | CA certificate — import into browsers (one-time) |
-| `cert.cnf` | OpenSSL config generated from your input |
-| `tls.key` | Server private key |
-| `tls.csr` | Certificate signing request |
-| `tls.crt` | Signed server certificate |
-| `tls.pem` | Combined cert+key for Pi-hole |
-
-**Method 2 (self-signed):**
-
-| File | Purpose |
-|------|---------|
-| `cert.cnf` | OpenSSL config generated from your input |
-| `tls.key` | Private key |
-| `tls.crt` | Self-signed certificate — import into browsers |
-| `tls.pem` | Combined cert+key for Pi-hole |
+The script prompts for your organization details, hostnames (DNS SANs), and IP addresses, then
+creates the CA and signs the certificate. At the end it **optionally deploys** the certificate
+for you (see [Deploy the certificate](#deploy-the-certificate)) — or you can skip and deploy it
+yourself.
 
 ## Deploy the certificate
 
-Pi-hole loads its certificate from a single PEM file at `/etc/pihole/tls.pem`. The script
-offers to deploy at the end (choose **host** or **docker**), or do it yourself:
+Pi-hole loads its certificate from a single PEM file at `/etc/pihole/tls.pem`. On a **bare-metal**
+Pi-hole the script runs on the Pi-hole machine itself. For **Docker**, run the script on the
+**Docker host** (where the `docker` command lives) — not inside the container.
 
-### Bare-metal
+### Automated (recommended)
+
+At the end of the run the script asks `Deploy the certificate now? [y/N]`. Answer **y**, then
+choose **[h]ost** (bare-metal) or **[d]ocker**. The host path copies `tls.pem` into
+`/etc/pihole` and restarts `pihole-FTL`; the Docker path lists your running containers, copies
+`tls.pem` into the one you pick, and restarts it.
+
+### Manual — bare-metal
 
 ```bash
 sudo cp tls.pem /etc/pihole/tls.pem
 sudo service pihole-FTL restart
 ```
 
-### Docker
+### Manual — Docker
 
-Copy the PEM into the container and restart it (default container name `pihole`):
+Run these on the **Docker host** (default container name `pihole`):
 
 ```bash
 docker cp tls.pem pihole:/etc/pihole/tls.pem
@@ -114,65 +95,89 @@ and restart the container.
 
 ## Import the certificate into your browser
 
-This is the one step the scripts can't do for you — import the certificate into your client's
-**Trusted Root Certificate Store**.
+This is the one step the script can't do for you: import the **CA certificate**
+(`homelabCA.crt`) into your client's **Trusted Root Certificate Store**. You do this **once** —
+every certificate the CA signs is then trusted.
 
-| Method | File to import | Import once? |
-|--------|---------------|--------------|
-| Method 1 (CA) | `homelabCA.crt` | Yes — all future certs signed by this CA are trusted |
-| Method 2 (self-signed) | `tls.crt` | No — import each new certificate individually |
+### Step 1: Copy `homelabCA.crt` to your computer
 
-First copy the file from the Pi-hole host to your client machine, e.g.:
+On **Windows**, open a **PowerShell** window (it opens in your home directory) and run, swapping
+in your Pi-hole's username and hostname:
 
-```bash
-# Method 1
-scp user@pihole-server:~/crt/homelabCA.crt ~/Downloads/
-# Method 2
-scp user@pihole-server:~/crt/tls.crt ~/Downloads/
+```powershell
+scp user@pihole:~/crt/homelabCA.crt ~/Downloads/
 ```
 
-**Chrome (Windows):**
-1. Open `chrome://certificate-manager`
-2. Click **Manage Imported Certificates**
-3. Open the **Trusted Root Certification Authorities** tab
-4. Click **Import**, select the certificate file, and confirm the store is **Trusted Root
-   Certification Authorities**
-5. Click **Finish**
+On macOS/Linux, run the same `scp` command from a terminal.
 
-**Chrome / Safari (macOS):**
-1. Double-click the `.crt` file to open it in Keychain Access (added to the **login** keychain)
+### Step 2: Import it
+
+**Windows (Chrome / Edge):**
+1. Open `chrome://certificate-manager`
+2. Click **Manage imported certificates**, then open the **Trusted Root Certification
+   Authorities** tab
+3. Click **Import** and select `homelabCA.crt`
+4. The Certificate Import Wizard opens with **"Place all certificates in the following store"**
+   already selected and **"Trusted Root Certification Authorities"** pre-filled — leave both as
+   they are, then **Next** → **Finish**
+5. Confirm the security warning with **Yes** — you should see **"The import was successful."**
+
+**macOS (Chrome / Safari):**
+1. Double-click `homelabCA.crt` to open it in Keychain Access (added to the **login** keychain)
 2. Double-click the certificate, expand **Trust**, and set **When using this certificate** to
    **Always Trust**
 3. Close the dialog and enter your password to confirm
 
 **Firefox (any OS):**
 1. Open `about:preferences#privacy` → **Certificates** → **View Certificates**
-2. On the **Authorities** tab, click **Import** and select the certificate
+2. On the **Authorities** tab, click **Import** and select `homelabCA.crt`
 3. Check **Trust this CA to identify websites**, then **OK**
 
 **Mobile (iOS / Android):** see the
 [official Pi-hole TLS documentation](https://docs.pi-hole.net/api/tls/).
 
-## Issuing additional certificates with your CA (Method 1)
+## Issuing additional certificates
 
-Re-run `./scripts/method1-ca-signed.sh`. It detects your existing CA and offers to **reuse** it,
-so you don't re-import anything into your browser — every certificate it signs is already
-trusted. (Declining reuse requires typing `OVERWRITE` to confirm, because regenerating the CA
-invalidates every certificate previously signed by it.)
+Re-run `./scripts/ca-signed.sh`. It detects your existing CA and offers to **reuse** it, so you
+don't re-import anything into your browser — every certificate it signs is already trusted.
+(Declining reuse requires typing `OVERWRITE` to confirm, because regenerating the CA invalidates
+every certificate previously signed by it.)
+
+## Verify it worked
+
+Browse to your Pi-hole admin page over HTTPS (e.g. `https://pi.hole/admin`, or your hostname).
+You should see the padlock with no certificate warning.
+
+> **Tip:** you may need to fully **close and reopen** your browser before it picks up the newly
+> trusted CA.
+
+## What the script does & produces
+
+`scripts/ca-signed.sh` creates a Certificate Authority, generates a server key and CSR, signs
+the certificate with the CA, and combines the certificate and key into `tls.pem` — then
+optionally deploys it. Files are written to a working directory (`~/crt` by default):
+
+| File | Purpose |
+|------|---------|
+| `homelabCA.key` | CA private key — keep this secure |
+| `homelabCA.crt` | CA certificate — import into browsers (one-time) |
+| `cert.cnf` | OpenSSL config generated from your input |
+| `tls.key` | Server private key |
+| `tls.csr` | Certificate signing request |
+| `tls.crt` | Signed server certificate |
+| `tls.pem` | Combined cert+key for Pi-hole |
 
 ## Security best practices
 
-A self-signed certificate or an internal CA is fine for a homelab. For anything internet-facing,
-prefer **[Let's Encrypt](https://letsencrypt.org/)** — publicly trusted and automatically
-renewed, so browsers show no warnings and there's no manual trust step. The author's companion
-guides cover that:
-[Let's Encrypt for Pi-hole v6](https://gist.github.com/kaczmar2/17f02a0ddb59a7d336b20376695797c6)
-and
-[Pi-hole v6 + Docker + Let's Encrypt](https://gist.github.com/kaczmar2/027fd6f64f4e4e7ebbb0c75cb3409787).
-Self-signed / internal CA still makes sense for air-gapped networks or quick testing.
+An internal CA is great for a homelab. For anything internet-facing, prefer
+**[Let's Encrypt](https://letsencrypt.org/)** — publicly trusted and automatically renewed, so
+browsers show no warnings and there's no manual trust step. The author's companion guides cover
+that: [Let's Encrypt for Pi-hole v6](https://gist.github.com/kaczmar2/17f02a0ddb59a7d336b20376695797c6)
+and [Pi-hole v6 + Docker + Let's Encrypt](https://gist.github.com/kaczmar2/027fd6f64f4e4e7ebbb0c75cb3409787).
+An internal CA still makes sense for air-gapped networks or quick testing.
 
 ## Prefer to do it by hand?
 
-Every step the scripts automate is written out as manual `openssl` commands in
-**[manual-openssl-steps.md](manual-openssl-steps.md)** — useful for understanding exactly what
-happens or adapting the process.
+Every step the script automates is written out as manual `openssl` commands in
+**[manual-openssl-ca.md](manual-openssl-ca.md)** — useful for understanding exactly what happens
+or adapting the process.
