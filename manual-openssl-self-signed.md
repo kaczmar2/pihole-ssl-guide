@@ -107,4 +107,4 @@ sudo service pihole-FTL restart
 
 Import `tls.crt` into your client's Trusted Root Certificate Store — see
 **[Import the certificate into your browser](README.md#import-the-certificate-into-your-browser)**
-in the README. With Method 2 you must import each certificate individually.
+in the README. With a self-signed certificate you must import each one individually.

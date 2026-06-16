@@ -139,7 +139,7 @@ sudo service pihole-FTL restart
 
 Import `homelabCA.crt` into your client's Trusted Root Certificate Store — see
 **[Import the certificate into your browser](README.md#import-the-certificate-into-your-browser)**
-in the README. With Method 1 you import the CA once; all certificates it signs are then trusted.
+in the README. You import the CA once; every certificate it signs is then trusted.
 
 ### Issuing additional server certificates with your CA (Optional)
 You can issue additional certificates for your other servers using the CA you created in **step 2**, and you do not have to re-install the CA certificate in your browser. 
