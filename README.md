@@ -54,6 +54,9 @@ tar -xzf main.tar.gz --strip-components=1
 ./scripts/method2-self-signed.sh
 ```
 
+> The scripts ship executable, so this should just work. If you get a `Permission denied`,
+> make them executable first: `chmod +x scripts/*.sh`.
+
 The script is interactive: it prompts for your organization details, hostnames (DNS SANs), and
 IP addresses, and generates the certificate. At the end it **optionally deploys** the
 certificate for you — to a **bare-metal** Pi-hole or a **Docker** container (see
