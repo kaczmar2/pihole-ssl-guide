@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# method1-ca-signed.sh
+# ca-signed.sh
 #
-# Automates Method 1 from the Pi-hole v6 SSL guide:
+# Automates the Internal CA method from the Pi-hole v6 SSL guide:
 #   Create an Internal Certificate Authority (CA), sign a server certificate,
 #   combine into tls.pem, and optionally deploy to Pi-hole.
 #
@@ -252,7 +252,7 @@ print_summary() {
 # ── Main ──────────────────────────────────────────────────────────────────────
 main() {
     echo "============================================================"
-    echo "  Pi-hole v6 SSL — Method 1: CA-Signed Certificate"
+    echo "  Pi-hole v6 SSL — Internal CA"
     echo "============================================================"
 
     check_openssl

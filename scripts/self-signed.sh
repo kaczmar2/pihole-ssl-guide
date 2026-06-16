@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# method2-self-signed.sh
+# self-signed.sh
 #
-# Automates Method 2 from the Pi-hole v6 SSL guide:
+# Automates the Self-signed method from the Pi-hole v6 SSL guide:
 #   Generate a self-signed certificate, combine into tls.pem,
 #   and optionally deploy to Pi-hole.
 #
@@ -237,7 +237,7 @@ print_summary() {
 # ── Main ──────────────────────────────────────────────────────────────────────
 main() {
     echo "============================================================"
-    echo "  Pi-hole v6 SSL — Method 2: Self-Signed Certificate"
+    echo "  Pi-hole v6 SSL — Self-signed"
     echo "============================================================"
 
     check_openssl
