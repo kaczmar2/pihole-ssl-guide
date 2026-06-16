@@ -55,8 +55,22 @@ check_openssl() {
 prompt() {
     local var_name="$1" prompt_text="$2" default="$3"
     local input
-    read -rp "$(printf "${CYAN}?${NC} %s [%s]: " "$prompt_text" "$default")" input
+    read -erp "$(printf "${CYAN}?${NC} %s [%s]: " "$prompt_text" "$default")" input
     printf -v "$var_name" '%s' "${input:-$default}"
+}
+
+# ── IP address validation ─────────────────────────────────────────────────────
+valid_ip() {
+    local ip="$1"
+    # IPv6 (contains a colon): let openssl validate it
+    [[ "$ip" == *:* ]] && return 0
+    # IPv4: four 0-255 octets
+    [[ "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] || return 1
+    local o
+    for o in "${BASH_REMATCH[@]:1}"; do
+        (( 10#$o <= 255 )) || return 1
+    done
+    return 0
 }
 
 # ── Deploy helpers ────────────────────────────────────────────────────────────
@@ -83,18 +97,21 @@ deploy_host() {
 }
 
 deploy_docker() {
-    local container
-    prompt container "Pi-hole container name" "pihole"
-
     if ! command -v docker &>/dev/null; then
         err "docker is not installed or not in PATH; cannot deploy to a container."
         warn "To deploy to your container manually, run:"
-        print_docker_recipe "$container"
+        print_docker_recipe "pihole"
         return
     fi
+
+    info "Running containers (use a NAME or ID below; Compose users: the 'container_name' value):"
+    docker ps --format '  {{.Names}}\t{{.Image}}\t{{.ID}}' || true
+
+    local container
+    prompt container "Pi-hole container name or ID" "pihole"
+
     if ! docker inspect "$container" &>/dev/null; then
-        err "No Docker container named '${container}' found. Running containers:"
-        docker ps --format '  {{.Names}}' || true
+        err "No Docker container '${container}' found. See the list above."
         warn "To deploy once the container is running, run:"
         print_docker_recipe "$container"
         return
@@ -133,7 +150,7 @@ collect_input() {
     local idx=2
     while true; do
         local entry
-        read -rp "$(printf "${CYAN}?${NC} DNS.%d: " "$idx")" entry
+        read -erp "$(printf "${CYAN}?${NC} DNS.%d: " "$idx")" entry
         [[ -z "$entry" ]] && break
         DNS_ENTRIES+=("$entry")
         ((idx++))
@@ -145,8 +162,12 @@ collect_input() {
     idx=1
     while true; do
         local entry
-        read -rp "$(printf "${CYAN}?${NC} IP.%d: " "$idx")" entry
+        read -erp "$(printf "${CYAN}?${NC} IP.%d: " "$idx")" entry
         [[ -z "$entry" ]] && break
+        if ! valid_ip "$entry"; then
+            warn "Not a valid IP address: '${entry}'. Try again (or press Enter to finish)."
+            continue
+        fi
         IP_ENTRIES+=("$entry")
         ((idx++))
     done
